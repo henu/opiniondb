@@ -1,5 +1,6 @@
-from django.db import models
+from django.db import models, IntegrityError
 from django.contrib.auth.models import User
+from django.template.defaultfilters import slugify
 
 class LikeMinded(models.Model):
 	user = models.ForeignKey(User, related_name='+')
@@ -8,6 +9,9 @@ class LikeMinded(models.Model):
 
 	def __unicode__(self):
 		return self.user.username + ' => ' + self.likeminded.username + ' ' + str(self.priority)
+
+	class Meta:
+		unique_together = ('user', 'likeminded')
 
 class Topic(models.Model):
 
@@ -18,8 +22,23 @@ class Topic(models.Model):
 
 class BooleanOpinion(models.Model):
 	user = models.ForeignKey(User, related_name='+')
-	value = models.BooleanField()
 	topic = models.ForeignKey(Topic, related_name='boolean_opinions')
+	value = models.BooleanField()
+
+	@staticmethod
+	def setOpinionForUser(user, topic, value):
+		try:
+			boolean_opinion = BooleanOpinion.objects.get(user=user, topic=topic)
+			boolean_opinion.value = value
+			boolean_opinion.save()
+		except BooleanOpinion.DoesNotExist:
+			boolean_opinion = BooleanOpinion(user=user, topic=topic, value=value)
+			try:
+				boolean_opinion.save()
+			except IntegrityError:
+				boolean_opinion = BooleanOpinion.objects.get(user=user, topic=topic)
+				boolean_opinion.value = value
+				boolean_opinion.save()
 
 	@staticmethod
 	def getBestOpinionFor(user, topic):
@@ -72,6 +91,9 @@ class BooleanOpinion(models.Model):
 		result += ' is true'
 		return result
 
+	class Meta:
+		unique_together = ('user', 'topic')
+
 class TagCloudGroup(models.Model):
 	""" TagCloudGroup is used to retrieve multiple
 	clouds that have some specific tag in them.
@@ -84,7 +106,28 @@ class TagCloudGroup(models.Model):
 
 class Tag(models.Model):
 	name = models.CharField(max_length=255)
+	slug = models.CharField(max_length=255)
 	group = models.ForeignKey(TagCloudGroup, related_name='tags')
+
+	def generateSlug(self):
+		"""Forms slug from name.
+
+		If generated slug is not valid, you can call this
+		function again and new slug will be generated.
+		"""
+
+		# If there is already a slug, then make
+		# some number to the end of new slug
+		extra_end = ''
+		if self.slug:
+			m = re.search('-(?P<number>[0-9]+)$', self.slug)
+			if m:
+				old_num = int(m.groupdict()['number'])
+				extra_end = '-' + str(old_num + 1)
+			else:
+				extra_end = '-0'
+
+		self.slug = slugify(self.name) + extra_end
 
 	def __unicode__(self):
 		result = self.name
@@ -92,8 +135,42 @@ class Tag(models.Model):
 			result += '/Tag cloud group #' + str(self.group.id)
 		return result
 
+	class Meta:
+		unique_together = (('name', 'group'), ('slug', 'group'))
+
 class TagCloud(models.Model):
 	group = models.ForeignKey(TagCloudGroup, related_name='clouds')
+
+	def addTag(self, tag_name, user):
+		# First check if tag already exists in the group.
+		# If not, add it there and also slugify it
+		tags = self.group.tags.filter(name=tag_name)
+		if len(tags) == 0:
+			tag = Tag(name=tag_name, slug='', group=self.group)
+			while True:
+				tag.generateSlug()
+				try:
+					tag.save()
+					break
+				except IntegrityError:
+					pass
+		else:
+			tag = tags[0]
+
+		# Ensure there is topic about this tag belonging to this cloud
+		try:
+			tag_belongs_to = TagBelongsTo.objects.get(tag=tag, cloud=self)
+		except TagBelongsTo.DoesNotExist:
+			topic = Topic()
+			topic.save()
+			tag_belongs_to = TagBelongsTo(tag=tag, cloud=self, topic=topic)
+			try:
+				tag_belongs_to.save()
+			except IntegrityError:
+				topic.delete()
+				tag_belongs_to = TagBelongsTo.objects.get(tag=tag, cloud=self)
+
+		BooleanOpinion.setOpinionForUser(user, tag_belongs_to.topic, True)
 
 	def __unicode__(self):
 		if not self.id:
@@ -110,4 +187,7 @@ class TagBelongsTo(models.Model):
 		if self.cloud.id:
 			result += ' #' + str(self.cloud.id)
 		return result
+
+	class Meta:
+		unique_together = ('tag', 'cloud')
 
