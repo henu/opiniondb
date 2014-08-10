@@ -172,6 +172,19 @@ class TagCloud(models.Model):
 
 		BooleanOpinion.setOpinionForUser(user, tag_belongs_to.topic, True)
 
+	def getTagsFor(self, user):
+		"""Returns list of tags for specific user.
+		User can also be None.
+		"""
+		all_tags = self.tags.all()
+		result = []
+		for tag_belongs_to in all_tags:
+			topic = tag_belongs_to.topic
+			opinion_value = BooleanOpinion.getBestOpinionFor(user, topic)
+			if opinion_value:
+				result.append(tag_belongs_to.tag)
+		return result
+
 	def __unicode__(self):
 		if not self.id:
 			return 'Tag cloud'
