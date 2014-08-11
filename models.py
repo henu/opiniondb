@@ -1,11 +1,42 @@
+# -*- coding: UTF-8 -*-
 from django.db import models, IntegrityError
 from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
+
+
+# ===========
+# CORE MODELS
+# ===========
 
 class LikeMinded(models.Model):
 	user = models.ForeignKey(User, related_name='+')
 	likeminded = models.ForeignKey(User, related_name='+')
 	priority = models.IntegerField()
+
+	@staticmethod
+	def calculateForUser(user):
+		other_users = {}
+		# Go all opinions of given user through and
+		# check what other people think about them.
+		boolean_opinions = BooleanOpinion.objects.filter(user=user)
+		for opinion in boolean_opinions:
+			# Check opinions of others from same topic
+			opinions_of_others = BooleanOpinion.objects.exclude(user=user).filter(topic=opinion.topic)
+			for opinion2 in opinions_of_others:
+				if opinion2.value == opinion.value:
+					other_users.setdefault(opinion2.user.username, 0)
+					other_users[opinion2.user.username] += 1
+				else:
+					other_users.setdefault(opinion2.user.username, 0)
+					other_users[opinion2.user.username] -= 1
+		# Clean old table
+		LikeMinded.objects.filter(user=user).delete()
+		# Create new table
+		priority = 0
+		for t in sorted(other_users.items(), key=lambda t: -t[1]):
+			likeminded=User.objects.get(username=t[0])
+			LikeMinded.objects.create(user=user, likeminded=likeminded, priority=priority)
+			priority += 1
 
 	def __unicode__(self):
 		return self.user.username + ' => ' + self.likeminded.username + ' ' + str(self.priority)
@@ -94,6 +125,11 @@ class BooleanOpinion(models.Model):
 	class Meta:
 		unique_together = ('user', 'topic')
 
+
+# ============
+# EXTRA MODELS
+# ============
+
 class TagCloudGroup(models.Model):
 	""" TagCloudGroup is used to retrieve multiple
 	clouds that have some specific tag in them.
@@ -142,10 +178,26 @@ class TagCloud(models.Model):
 	group = models.ForeignKey(TagCloudGroup, related_name='clouds')
 
 	def addTag(self, tag_name, user):
+		topic = self._getTopicForTagExistence(tag_name, True)
+		BooleanOpinion.setOpinionForUser(user, topic, True)
+
+	def removeTag(self, tag_name, user):
+		topic = self._getTopicForTagExistence(tag_name, False)
+		if topic:
+			BooleanOpinion.setOpinionForUser(user, topic, False)
+
+	def _getTopicForTagExistence(self, tag_name, create_if_does_not_exist):
+		"""Returns requested topic. If topic is not
+		found, it is either created, or None is returned,
+		base on argument "create_if_does_not_exist".
+		"""
+
 		# First check if tag already exists in the group.
-		# If not, add it there and also slugify it
 		tags = self.group.tags.filter(name=tag_name)
 		if len(tags) == 0:
+			# Tag does not exist, so create it, or give up
+			if not create_if_does_not_exist:
+				return None
 			tag = Tag(name=tag_name, slug='', group=self.group)
 			while True:
 				tag.generateSlug()
@@ -161,6 +213,9 @@ class TagCloud(models.Model):
 		try:
 			tag_belongs_to = TagBelongsTo.objects.get(tag=tag, cloud=self)
 		except TagBelongsTo.DoesNotExist:
+			# Create new topic, or give up
+			if not create_if_does_not_exist:
+				return None
 			topic = Topic()
 			topic.save()
 			tag_belongs_to = TagBelongsTo(tag=tag, cloud=self, topic=topic)
@@ -170,7 +225,7 @@ class TagCloud(models.Model):
 				topic.delete()
 				tag_belongs_to = TagBelongsTo.objects.get(tag=tag, cloud=self)
 
-		BooleanOpinion.setOpinionForUser(user, tag_belongs_to.topic, True)
+		return tag_belongs_to.topic
 
 	def getTagsFor(self, user):
 		"""Returns list of tags for specific user.
