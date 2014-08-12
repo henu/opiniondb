@@ -178,22 +178,26 @@ class TagCloud(models.Model):
 	group = models.ForeignKey(TagCloudGroup, related_name='clouds')
 
 	def addTag(self, tag_name, user):
-		topic = self._getTopicForTagExistence(tag_name, True)
+		topic = self._getTopicForTagExistence(tag_name, None, True)
 		BooleanOpinion.setOpinionForUser(user, topic, True)
 
-	def removeTag(self, tag_name, user):
-		topic = self._getTopicForTagExistence(tag_name, False)
+	def removeTag(self, tag_slug, user):
+		topic = self._getTopicForTagExistence(None, tag_slug, False)
 		if topic:
 			BooleanOpinion.setOpinionForUser(user, topic, False)
+			# TODO: If tag does not belong to any cloud, remove it
 
-	def _getTopicForTagExistence(self, tag_name, create_if_does_not_exist):
+	def _getTopicForTagExistence(self, tag_name, tag_slug, create_if_does_not_exist):
 		"""Returns requested topic. If topic is not
 		found, it is either created, or None is returned,
 		base on argument "create_if_does_not_exist".
 		"""
 
 		# First check if tag already exists in the group.
-		tags = self.group.tags.filter(name=tag_name)
+		if tag_name:
+			tags = self.group.tags.filter(name=tag_name)
+		elif tag_slug:
+			tags = self.group.tags.filter(slug=tag_slug)
 		if len(tags) == 0:
 			# Tag does not exist, so create it, or give up
 			if not create_if_does_not_exist:
