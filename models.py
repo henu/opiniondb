@@ -166,6 +166,17 @@ class Tag(models.Model):
 
 		self.slug = slugify(self.name) + extra_end
 
+	def getCloudsFor(self, user):
+		"""Returns list of clouds for specific user.
+		User can also be None.
+		"""
+		result = []
+		for cloud in self.clouds.all():
+			belongs_to_cloud = BooleanOpinion.getBestOpinionFor(user, cloud.topic)
+			if belongs_to_cloud:
+				result.append(cloud.cloud)
+		return result
+
 	def __unicode__(self):
 		result = self.name
 		if self.group.id:
