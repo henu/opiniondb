@@ -1,6 +1,8 @@
 # -*- coding: UTF-8 -*-
-from django.db import models, IntegrityError
 from django.contrib.auth.models import User
+from django.db import models, IntegrityError
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.template.defaultfilters import slugify
 
 
@@ -114,12 +116,11 @@ class BooleanOpinion(models.Model):
 
 	def __unicode__(self):
 		result = self.user.username
-		if self.value:
-			result += ' believes that '
-		else:
-			result += ' does not believe that '
+		result += ' believes that '
 		result += unicode(self.topic)
-		result += ' is true'
+		result += ' is '
+		if self.value: result += 'true'
+		else: result += 'false'
 		return result
 
 	class Meta:
@@ -185,7 +186,10 @@ class TagCloud(models.Model):
 		topic = self._getTopicForTagExistence(None, tag_slug, False)
 		if topic:
 			BooleanOpinion.setOpinionForUser(user, topic, False)
-			# TODO: If tag does not belong to any cloud, remove it
+			# If everybody think that this tag does not
+			# belong to this cloud, then remove the topic.
+			if len(topic.boolean_opinions.filter(value=True)) == 0:
+				topic.delete()
 
 	def _getTopicForTagExistence(self, tag_name, tag_slug, create_if_does_not_exist):
 		"""Returns requested topic. If topic is not
@@ -262,4 +266,12 @@ class TagBelongsTo(models.Model):
 
 	class Meta:
 		unique_together = ('tag', 'cloud')
+
+@receiver(post_delete, sender=TagBelongsTo)
+def post_delete_tag_belongs_to(sender, instance, *args, **kwargs):
+	if instance.topic:
+		instance.topic.delete()
+	# If this was the last cloud that tag belonged to, then delete tag too
+	if len(instance.tag.clouds.all()) == 0:
+		instance.tag.delete()
 
