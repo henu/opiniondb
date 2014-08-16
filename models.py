@@ -136,6 +136,25 @@ class TagCloudGroup(models.Model):
 	clouds that have some specific tag in them.
 	"""
 
+	def getAllTagsAndCountsFor(self, user):
+		"""Returns all tags from this group and also their usage counts.
+
+		Returns a list of tuples, where tag object is the first item in
+		tuple and usage count is the second one.
+
+		Tags with zero usage count are not included.
+		"""
+		result = []
+		for tag in self.tags.all():
+			usage_count = 0
+			for cloud in tag.clouds.all():
+				belongs_to_cloud = BooleanOpinion.getBestOpinionFor(user, cloud.topic)
+				if belongs_to_cloud:
+					usage_count += 1
+			if usage_count > 0:
+				result.append((tag, usage_count,))
+		return result
+
 	def __unicode__(self):
 		if not self.id:
 			return 'Tag cloud group'
