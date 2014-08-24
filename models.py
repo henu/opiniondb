@@ -221,6 +221,19 @@ class TagCloud(models.Model):
 			if len(topic.boolean_opinions.filter(value=True)) == 0:
 				topic.delete()
 
+	def getTagsFor(self, user):
+		"""Returns list of tags for specific user.
+		User can also be None.
+		"""
+		all_tags = self.tags.all().select_related('topic', 'tag')
+		result = []
+		for tag_belongs_to in all_tags:
+			topic = tag_belongs_to.topic
+			opinion_value = BooleanOpinion.getBestOpinionFor(user, topic)
+			if opinion_value:
+				result.append(tag_belongs_to.tag)
+		return result
+
 	def _getTopicForTagExistence(self, tag_name, tag_slug, create_if_does_not_exist):
 		"""Returns requested topic. If topic is not
 		found, it is either created, or None is returned,
@@ -264,19 +277,6 @@ class TagCloud(models.Model):
 				tag_belongs_to = TagBelongsTo.objects.get(tag=tag, cloud=self)
 
 		return tag_belongs_to.topic
-
-	def getTagsFor(self, user):
-		"""Returns list of tags for specific user.
-		User can also be None.
-		"""
-		all_tags = self.tags.all().select_related('topic', 'tag')
-		result = []
-		for tag_belongs_to in all_tags:
-			topic = tag_belongs_to.topic
-			opinion_value = BooleanOpinion.getBestOpinionFor(user, topic)
-			if opinion_value:
-				result.append(tag_belongs_to.tag)
-		return result
 
 	def __unicode__(self):
 		if not self.id:
