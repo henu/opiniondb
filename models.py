@@ -87,7 +87,7 @@ class BooleanOpinion(models.Model):
 		if user:
 			# Check if user has opinion by himself/herself
 			try:
-				opinion = BooleanOpinion.objects.filter(topic=topic).get(user=user)
+				opinion = topic.boolean_opinions.get(user=user)
 				return opinion.value
 			except BooleanOpinion.DoesNotExist:
 				pass
@@ -97,7 +97,7 @@ class BooleanOpinion(models.Model):
 			likemindeds = LikeMinded.objects.filter(user=user).order_by('priority')
 			for likeminded in likemindeds:
 				try:
-					opinion = BooleanOpinion.objects.filter(topic=topic).get(user=likeminded.likeminded)
+					opinion = topic.boolean_opinions.get(user=likeminded.likeminded)
 					return opinion.value
 				except BooleanOpinion.DoesNotExist:
 					pass
@@ -269,7 +269,7 @@ class TagCloud(models.Model):
 		"""Returns list of tags for specific user.
 		User can also be None.
 		"""
-		all_tags = self.tags.all()
+		all_tags = self.tags.all().select_related('topic', 'tag')
 		result = []
 		for tag_belongs_to in all_tags:
 			topic = tag_belongs_to.topic
