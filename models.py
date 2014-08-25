@@ -74,23 +74,26 @@ class BooleanOpinion(models.Model):
 				boolean_opinion.save()
 
 	@staticmethod
-	def getBestOpinionFor(user, topic):
+	def getBestOpinionFor(user, topic, discard_own_opinions=False):
 		"""Returns opinion value (True/False) from
 		specific topic that is best match to given
 		user. Anonymous user is None.
 
 		If opinion could not be decided, then None
 		is returned.
+
+		Argument "discard_own_opinions" is not meant for end user.
 		"""
 
 		# If not anonymous
 		if user:
 			# Check if user has opinion by himself/herself
-			try:
-				opinion = topic.boolean_opinions.get(user=user)
-				return opinion.value
-			except BooleanOpinion.DoesNotExist:
-				pass
+			if not discard_own_opinions:
+				try:
+					opinion = topic.boolean_opinions.get(user=user)
+					return opinion.value
+				except BooleanOpinion.DoesNotExist:
+					pass
 
 			# Go all like-minded users through
 			# and check what they think
@@ -119,8 +122,43 @@ class BooleanOpinion(models.Model):
 
 	@staticmethod
 	def getBestOpinionsFor(user, topics):
-		# TODO: Optimize this to make only one or maybe two SQL queries!
-		return [BooleanOpinion.getBestOpinionFor(user, topic) for topic in topics]
+
+		values_dict = {}
+
+		# First get all own opinions of possible user with single SQL query.
+		if user:
+			own_opinions = BooleanOpinion.objects.filter(user=user).filter(topic__in=topics)
+			for own_opinion in own_opinions:
+				values_dict[own_opinion.topic_id] = own_opinion.value
+
+		if len(values_dict) == 0:
+			# There was no own opinions, so things will be simple
+			# TODO: Do this in one SQL query!
+			return [BooleanOpinion.getBestOpinionFor(user, topic) for topic in topics]
+		else:
+			# There was own opinions, so it is good
+			# idea to not ask again about those topics
+			topics_reduced = []
+			for topic in topics:
+				if topic.id not in values_dict:
+					topics_reduced.append(topic)
+			# TODO: Do this in one SQL query!
+			values_reduced = [BooleanOpinion.getBestOpinionFor(user, topic, discard_own_opinions=True) for topic in topics_reduced]
+
+			# Construct final container of values
+			values = []
+			values_reduced_ofs = 0
+			for topic in topics:
+				# If the opinion is our own
+				own_value = values_dict.get(topic.id, -1)
+				if own_value != -1:
+					values.append(own_value)
+				else:
+					values.append(values_recuded[values_reduced_ofs])
+					values_reduced_ofs += 1
+			assert values_reduced_ofs == len(values_reduced)
+
+			return values
 
 	def __unicode__(self):
 		result = self.user.username
@@ -153,6 +191,7 @@ class TagCloudGroup(models.Model):
 		Tags with zero usage count are not included.
 		"""
 		result = []
+		# TODO: Combine all topics into one very long list of topics!
 		for tag in self.tags.all().prefetch_related('clouds'):
 			topics = [cloud.topic for cloud in tag.clouds.all().select_related('topic')]
 			belongings_to_cloud = BooleanOpinion.getBestOpinionsFor(user, topics)
