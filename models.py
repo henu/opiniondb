@@ -153,12 +153,10 @@ class TagCloudGroup(models.Model):
 		Tags with zero usage count are not included.
 		"""
 		result = []
-		for tag in self.tags.all():
-			usage_count = 0
-			for cloud in tag.clouds.all():
-				belongs_to_cloud = BooleanOpinion.getBestOpinionFor(user, cloud.topic)
-				if belongs_to_cloud:
-					usage_count += 1
+		for tag in self.tags.all().prefetch_related('clouds'):
+			topics = [cloud.topic for cloud in tag.clouds.all().select_related('topic')]
+			belongings_to_cloud = BooleanOpinion.getBestOpinionsFor(user, topics)
+			usage_count = sum(belongings_to_cloud)
 			if usage_count > 0:
 				result.append((tag, usage_count,))
 		return result
