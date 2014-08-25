@@ -154,7 +154,7 @@ class BooleanOpinion(models.Model):
 				if own_value != -1:
 					values.append(own_value)
 				else:
-					values.append(values_recuded[values_reduced_ofs])
+					values.append(values_reduced[values_reduced_ofs])
 					values_reduced_ofs += 1
 			assert values_reduced_ofs == len(values_reduced)
 
