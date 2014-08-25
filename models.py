@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 from django.contrib.auth.models import User
-from django.db import models, IntegrityError
+from django.db import models, IntegrityError, connection
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.template.defaultfilters import slugify
@@ -94,16 +94,19 @@ class BooleanOpinion(models.Model):
 
 			# Go all like-minded users through
 			# and check what they think
-			likemindeds = LikeMinded.objects.filter(user=user).order_by('priority')
-			for likeminded in likemindeds:
-				try:
-					opinion = topic.boolean_opinions.get(user=likeminded.likeminded)
-					return opinion.value
-				except BooleanOpinion.DoesNotExist:
-					pass
+			cursor = connection.cursor()
+			cursor.execute(
+				"""SELECT value FROM opiniondb_likeminded JOIN opiniondb_booleanopinion
+				ON opiniondb_likeminded.likeminded_id=opiniondb_booleanopinion.user_id
+				WHERE opiniondb_likeminded.user_id=%s AND topic_id=%s ORDER BY priority LIMIT 1""",
+				[ user.id, topic.id]
+			)
+			value = cursor.fetchone()
+			if value:
+				value = value[0]
 
-		# Get average value in case user is anonymous or if
-		# nobody of the like-mindeds did not had an opinion.
+		# Get average value in case user is anonymous or
+		# if nobody of the like-mindeds had an opinion.
 		opinions = BooleanOpinion.objects.filter(topic=topic)
 		if len(opinions) == 0:
 			# Unable to decide
@@ -113,6 +116,11 @@ class BooleanOpinion(models.Model):
 			if opinion.value:
 				trues += 1
 		return trues*2 >= len(opinions)
+
+	@staticmethod
+	def getBestOpinionsFor(user, topics):
+		# TODO: Optimize this to make only one or maybe two SQL queries!
+		return [BooleanOpinion.getBestOpinionFor(user, topic) for topic in topics]
 
 	def __unicode__(self):
 		result = self.user.username
@@ -226,10 +234,15 @@ class TagCloud(models.Model):
 		User can also be None.
 		"""
 		all_tags = self.tags.all().select_related('topic', 'tag')
+		# Get opinion values to all topics using one function
+		topics = [tag_belongs_to.topic for tag_belongs_to in all_tags]
+		opinion_values = BooleanOpinion.getBestOpinionsFor(user, topics)
+		# Construct list of tags that belong to the cloud
 		result = []
+		opinion_values_ofs = 0
 		for tag_belongs_to in all_tags:
-			topic = tag_belongs_to.topic
-			opinion_value = BooleanOpinion.getBestOpinionFor(user, topic)
+			opinion_value = opinion_values[opinion_values_ofs]
+			opinion_values_ofs += 1
 			if opinion_value:
 				result.append(tag_belongs_to.tag)
 		return result
