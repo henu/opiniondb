@@ -7,7 +7,7 @@ Users can modify values in database to represent their own views. If user hasn't
 
 The idea of OpinionDB is to help create political websites and tools. For example, in many comment systems you can rate comments of other users. The problem is, that some people give down votes if they disagree, even if the comment really has a good point.
 
-OpinionDB does not let two fighting groups to mess with each others. Instead it isolates them two separate groups and offers pleasant "truth" for both parties :)
+OpinionDB does not let two fighting groups to mess with each others. Instead it isolates them in two separate groups and offers pleasant "truth" for both parties :)
 
 Datatypes
 =========
@@ -30,23 +30,25 @@ Extra types
 
 ### TagCloud
 
-Tag cloud system consists from three parts:
-1. Group of tag clouds. This is the space where all the magic happens.
-2. Tag clouds. Each of these belong to one group of tag clouds.
-3. Individual tags. Each of these belong to a group. They can also belong to any of the clouds that are in the same group that they belong.
+Tag cloud system consists of three parts:
+
+1. Group. This gathers multiple clouds into a tag system. It can be used to find all used tags. There can be many of these, but usually just one is needed.
+2. Clouds. These represent entities that can be tagge, for example a news article.
+3. Tags. These can be assigned to clouds. Each tag can belong to as many clouds as you want, but only once per cloud.
 
 Here are some usage examples:
+
 ```
 cloud.addTag('Some tag', user)
 cloud.removeTag('another_tag' user)
 
 tags_for_this_cloud = cloud.getTagsFor(user)
-tags_from_same_cloud_to_anon = cloud.getTagsFor(None)
+tags_from_same_cloud_to_anonymous_user = cloud.getTagsFor(None)
 
-clouds_where_this_tag_belongs_to = tas_for_this_cloud[0].getCloudsFor(user)
+some_tag = tags_for_this_cloud[0]
+
+clouds_where_this_tag_belongs_to = some_tag.getCloudsFor(user)
 
 all_tags_of_group = group.getAllTagsAndCountsFor(user)
-all_tags_of_group_for_anon = group.getAllTagsAndCountsFor(None)
+all_tags_of_group_for_anonymous_user = group.getAllTagsAndCountsFor(None)
 ```
-
-
