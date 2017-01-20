@@ -1,149 +1,142 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+from django.conf import settings
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'Topic'
-        db.create_table(u'opiniondb_topic', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-        ))
-        db.send_create_signal(u'opiniondb', ['Topic'])
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
 
-        # Adding model 'BooleanOpinion'
-        db.create_table(u'opiniondb_booleanopinion', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='+', to=orm['auth.User'])),
-            ('value', self.gf('django.db.models.fields.BooleanField')()),
-            ('topic', self.gf('django.db.models.fields.related.ForeignKey')(related_name='boolean_opinions', to=orm['opiniondb.Topic'])),
-        ))
-        db.send_create_signal(u'opiniondb', ['BooleanOpinion'])
-
-        # Adding model 'TagCloudGroup'
-        db.create_table(u'opiniondb_tagcloudgroup', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-        ))
-        db.send_create_signal(u'opiniondb', ['TagCloudGroup'])
-
-        # Adding model 'Tag'
-        db.create_table(u'opiniondb_tag', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('group', self.gf('django.db.models.fields.related.ForeignKey')(related_name='tags', to=orm['opiniondb.TagCloudGroup'])),
-        ))
-        db.send_create_signal(u'opiniondb', ['Tag'])
-
-        # Adding model 'TagCloud'
-        db.create_table(u'opiniondb_tagcloud', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('group', self.gf('django.db.models.fields.related.ForeignKey')(related_name='clouds', to=orm['opiniondb.TagCloudGroup'])),
-        ))
-        db.send_create_signal(u'opiniondb', ['TagCloud'])
-
-        # Adding model 'TagBelongsTo'
-        db.create_table(u'opiniondb_tagbelongsto', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('topic', self.gf('django.db.models.fields.related.OneToOneField')(related_name='tag_belongs_to', unique=True, to=orm['opiniondb.Topic'])),
-            ('tag', self.gf('django.db.models.fields.related.ForeignKey')(related_name='clouds', to=orm['opiniondb.Tag'])),
-            ('cloud', self.gf('django.db.models.fields.related.ForeignKey')(related_name='tags', to=orm['opiniondb.TagCloud'])),
-        ))
-        db.send_create_signal(u'opiniondb', ['TagBelongsTo'])
-
-
-    def backwards(self, orm):
-        # Deleting model 'Topic'
-        db.delete_table(u'opiniondb_topic')
-
-        # Deleting model 'BooleanOpinion'
-        db.delete_table(u'opiniondb_booleanopinion')
-
-        # Deleting model 'TagCloudGroup'
-        db.delete_table(u'opiniondb_tagcloudgroup')
-
-        # Deleting model 'Tag'
-        db.delete_table(u'opiniondb_tag')
-
-        # Deleting model 'TagCloud'
-        db.delete_table(u'opiniondb_tagcloud')
-
-        # Deleting model 'TagBelongsTo'
-        db.delete_table(u'opiniondb_tagbelongsto')
-
-
-    models = {
-        u'auth.group': {
-            'Meta': {'object_name': 'Group'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        u'auth.permission': {
-            'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
-            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
-        },
-        u'auth.user': {
-            'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Group']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Permission']"}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
-        },
-        u'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        },
-        u'opiniondb.booleanopinion': {
-            'Meta': {'object_name': 'BooleanOpinion'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'topic': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'boolean_opinions'", 'to': u"orm['opiniondb.Topic']"}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'+'", 'to': u"orm['auth.User']"}),
-            'value': ('django.db.models.fields.BooleanField', [], {})
-        },
-        u'opiniondb.tag': {
-            'Meta': {'object_name': 'Tag'},
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tags'", 'to': u"orm['opiniondb.TagCloudGroup']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'})
-        },
-        u'opiniondb.tagbelongsto': {
-            'Meta': {'object_name': 'TagBelongsTo'},
-            'cloud': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'tags'", 'to': u"orm['opiniondb.TagCloud']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'tag': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'clouds'", 'to': u"orm['opiniondb.Tag']"}),
-            'topic': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'tag_belongs_to'", 'unique': 'True', 'to': u"orm['opiniondb.Topic']"})
-        },
-        u'opiniondb.tagcloud': {
-            'Meta': {'object_name': 'TagCloud'},
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'clouds'", 'to': u"orm['opiniondb.TagCloudGroup']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
-        },
-        u'opiniondb.tagcloudgroup': {
-            'Meta': {'object_name': 'TagCloudGroup'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
-        },
-        u'opiniondb.topic': {
-            'Meta': {'object_name': 'Topic'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
-        }
-    }
-
-    complete_apps = ['opiniondb']
+    operations = [
+        migrations.CreateModel(
+            name='BooleanOpinion',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('value', models.BooleanField()),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='LikeMinded',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('priority', models.IntegerField()),
+                ('likeminded', models.ForeignKey(related_name='+', to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(related_name='+', to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Tag',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=255)),
+                ('slug', models.CharField(max_length=255)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='TagBelongsTo',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='TagCloud',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='TagCloudGroup',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='Topic',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.AddField(
+            model_name='tagcloud',
+            name='group',
+            field=models.ForeignKey(related_name='clouds', to='opiniondb.TagCloudGroup'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='tagbelongsto',
+            name='cloud',
+            field=models.ForeignKey(related_name='tags', to='opiniondb.TagCloud'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='tagbelongsto',
+            name='tag',
+            field=models.ForeignKey(related_name='clouds', to='opiniondb.Tag'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='tagbelongsto',
+            name='topic',
+            field=models.OneToOneField(related_name='tag_belongs_to', to='opiniondb.Topic'),
+            preserve_default=True,
+        ),
+        migrations.AlterUniqueTogether(
+            name='tagbelongsto',
+            unique_together=set([('tag', 'cloud')]),
+        ),
+        migrations.AddField(
+            model_name='tag',
+            name='group',
+            field=models.ForeignKey(related_name='tags', to='opiniondb.TagCloudGroup'),
+            preserve_default=True,
+        ),
+        migrations.AlterUniqueTogether(
+            name='tag',
+            unique_together=set([('name', 'group'), ('slug', 'group')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='likeminded',
+            unique_together=set([('user', 'likeminded')]),
+        ),
+        migrations.AddField(
+            model_name='booleanopinion',
+            name='topic',
+            field=models.ForeignKey(related_name='boolean_opinions', to='opiniondb.Topic'),
+            preserve_default=True,
+        ),
+        migrations.AddField(
+            model_name='booleanopinion',
+            name='user',
+            field=models.ForeignKey(related_name='+', to=settings.AUTH_USER_MODEL),
+            preserve_default=True,
+        ),
+        migrations.AlterUniqueTogether(
+            name='booleanopinion',
+            unique_together=set([('user', 'topic')]),
+        ),
+    ]

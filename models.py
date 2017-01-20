@@ -56,7 +56,7 @@ class Topic(models.Model):
 class BooleanOpinion(models.Model):
 	user = models.ForeignKey(User, related_name='+')
 	topic = models.ForeignKey(Topic, related_name='boolean_opinions')
-	value = models.BooleanField()
+	value = models.BooleanField(default=False)
 
 	@staticmethod
 	def setOpinionForUser(user, topic, value):
