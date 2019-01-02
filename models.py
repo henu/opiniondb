@@ -13,8 +13,8 @@ import re
 # ===========
 
 class LikeMinded(models.Model):
-	user = models.ForeignKey(User, related_name='+')
-	likeminded = models.ForeignKey(User, related_name='+')
+	user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE)
+	likeminded = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE)
 	priority = models.IntegerField()
 
 	@staticmethod
@@ -56,8 +56,8 @@ class Topic(models.Model):
 		return 'Topic #' + str(self.id)
 
 class BooleanOpinion(models.Model):
-	user = models.ForeignKey(User, related_name='+')
-	topic = models.ForeignKey(Topic, related_name='boolean_opinions')
+	user = models.ForeignKey(User, related_name='+', on_delete=models.CASCADE)
+	topic = models.ForeignKey(Topic, related_name='boolean_opinions', on_delete=models.CASCADE)
 	value = models.BooleanField(default=False)
 
 	@staticmethod
@@ -210,7 +210,7 @@ class TagCloudGroup(models.Model):
 class Tag(models.Model):
 	name = models.CharField(max_length=255)
 	slug = models.CharField(max_length=255)
-	group = models.ForeignKey(TagCloudGroup, related_name='tags')
+	group = models.ForeignKey(TagCloudGroup, related_name='tags', on_delete=models.CASCADE)
 
 	def generateSlug(self):
 		"""Forms slug from name.
@@ -253,7 +253,7 @@ class Tag(models.Model):
 		unique_together = (('name', 'group'), ('slug', 'group'))
 
 class TagCloud(models.Model):
-	group = models.ForeignKey(TagCloudGroup, related_name='clouds')
+	group = models.ForeignKey(TagCloudGroup, related_name='clouds', on_delete=models.CASCADE)
 
 	def addTag(self, tag_name, user):
 		topic = self._getTopicForTagExistence(tag_name, None, True)
@@ -336,9 +336,9 @@ class TagCloud(models.Model):
 		return 'Tag cloud #' + str(self.id)
 
 class TagBelongsTo(models.Model):
-	topic = models.OneToOneField(Topic, related_name='tag_belongs_to')
-	tag = models.ForeignKey(Tag, related_name='clouds')
-	cloud = models.ForeignKey(TagCloud, related_name='tags')
+	topic = models.OneToOneField(Topic, related_name='tag_belongs_to', on_delete=models.CASCADE)
+	tag = models.ForeignKey(Tag, related_name='clouds', on_delete=models.CASCADE)
+	cloud = models.ForeignKey(TagCloud, related_name='tags', on_delete=models.CASCADE)
 
 	def __unicode__(self):
 		result = '"' + self.tag.name + '" belongs to Tag cloud'
